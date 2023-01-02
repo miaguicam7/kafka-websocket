@@ -1,12 +1,10 @@
 package com.example.demo;
 
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Configuration;
@@ -14,12 +12,9 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -31,7 +26,6 @@ import reactor.kafka.receiver.ReceiverOptions;
 import reactor.kafka.receiver.ReceiverRecord;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +35,6 @@ public class DemoApplication {
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
     }
-
 }
 
 /*configuracion de websockets*/
@@ -63,10 +56,6 @@ class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfigurer {
 
 @Controller
 class ThymeleafController {
-    @RequestMapping("/chat")
-    public String chat(Model model) {
-        return "chat";
-    }
     @RequestMapping("/index")
     public String index(Model model) {
         return "index";
@@ -75,65 +64,26 @@ class ThymeleafController {
 
 @Controller
 class WebSocketBroadcastController {
-
     @Autowired
-    SampleConsumer sampleConsumer;
-
-    @GetMapping("/stomp-broadcast")
-    public String getWebSocketBroadcast() {
-        return "stomp-broadcast";
-    }
+    KafkaConsumer kafkaConsumer;
 
     @MessageMapping("/broadcast")
     @SendTo("/topic/messages")
-    public void send(ChatMessage chatMessage) throws Exception {
-        sampleConsumer.consumeMessages("demo-topic");
-    }
-}
-
-@Data
-class ChatMessage {
-
-    private String from;
-    private String text;
-    private String recipient;
-    private String time;
-
-    public ChatMessage() {
-
-    }
-
-    public ChatMessage(String from, String text, String recipient) {
-        this.from = from;
-        this.text = text;
-        this.recipient = recipient;
+    public void send(String str) {
+        if (str.equals("{\"from\":\"server\",\"text\":\"connected to server\"}")) {
+            kafkaConsumer.consumeMessages("demo-topic");
+        }
     }
 }
 
 @Slf4j
 @Component
-class SampleConsumer {
+class KafkaConsumer {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-    private static final String TOPIC = "demo-topic";
     private final ReceiverOptions<Integer, String> receiverOptions;
-    private final DateTimeFormatter dateFormat;
 
-
-/*
-    @Override
-    public void run(String... args) throws Exception {
-        int count = 20;
-        consumeMessages(TOPIC);
-      */
-/*  latch.await(10, TimeUnit.SECONDS);
-        disposable.dispose();*//*
-
-    }
-
-*/
-
-    public SampleConsumer() {
+    public KafkaConsumer() {
 
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:29092");
@@ -143,7 +93,6 @@ class SampleConsumer {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         receiverOptions = ReceiverOptions.create(props);
-        dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss:SSS z dd MMM yyyy");
     }
 
     public void consumeMessages(String topic) {
@@ -163,19 +112,6 @@ class SampleConsumer {
             messagingTemplate.convertAndSend("/topic/broadcast", record.value());
             offset.acknowledge();
         });
-    }
-}
-
-@Service
-class MessageService {
-    @Autowired
-    SampleConsumer sampleConsumer;
-
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
-    public void sendMessage() {
-        messagingTemplate.convertAndSend("/topic/broadcast", "Mensaje enviado cada 5 segundos");
     }
 }
 

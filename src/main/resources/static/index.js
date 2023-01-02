@@ -10,7 +10,7 @@ $(document).ready(function () {
             li.textContent = message.body;
             document.getElementById('messages').appendChild(li);
         });
-        sendConnection(' connected to server');
+        sendConnection('connected to server');
     }, function (err) {
         alert('error' + err);
     });
@@ -27,7 +27,7 @@ $(document).ready(function () {
     }
 
     function sendConnection(message) {
-        var text = userName + message;
+        var text = message;
         sendBroadcast({'from': 'server', 'text': text});
     }
 
