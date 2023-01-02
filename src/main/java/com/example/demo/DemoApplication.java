@@ -77,7 +77,7 @@ class ThymeleafController {
 class WebSocketBroadcastController {
 
     @Autowired
-    MessageService messageService;
+    SampleConsumer sampleConsumer;
 
     @GetMapping("/stomp-broadcast")
     public String getWebSocketBroadcast() {
@@ -87,7 +87,7 @@ class WebSocketBroadcastController {
     @MessageMapping("/broadcast")
     @SendTo("/topic/messages")
     public void send(ChatMessage chatMessage) throws Exception {
-        messageService.sendMessage();
+        sampleConsumer.consumeMessages("demo-topic");
     }
 }
 
@@ -112,20 +112,26 @@ class ChatMessage {
 
 @Slf4j
 @Component
-class SampleConsumer implements CommandLineRunner {
+class SampleConsumer {
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     private static final String TOPIC = "demo-topic";
     private final ReceiverOptions<Integer, String> receiverOptions;
     private final DateTimeFormatter dateFormat;
 
 
+/*
     @Override
     public void run(String... args) throws Exception {
         int count = 20;
         consumeMessages(TOPIC);
-      /*  latch.await(10, TimeUnit.SECONDS);
-        disposable.dispose();*/
+      */
+/*  latch.await(10, TimeUnit.SECONDS);
+        disposable.dispose();*//*
+
     }
 
+*/
 
     public SampleConsumer() {
 
@@ -154,6 +160,7 @@ class SampleConsumer implements CommandLineRunner {
                     offset.offset(),
                     record.key(),
                     record.value());
+            messagingTemplate.convertAndSend("/topic/broadcast", record.value());
             offset.acknowledge();
         });
     }
@@ -163,7 +170,7 @@ class SampleConsumer implements CommandLineRunner {
 class MessageService {
     @Autowired
     SampleConsumer sampleConsumer;
-    
+
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
