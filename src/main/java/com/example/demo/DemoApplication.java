@@ -64,8 +64,12 @@ class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfigurer {
 
 @Controller
 class ThymeleafController {
+    @RequestMapping("/chat")
+    public String chat(Model model) {
+        return "chat";
+    }
     @RequestMapping("/index")
-    public String saludar(Model model) {
+    public String index(Model model) {
         return "index";
     }
 }
